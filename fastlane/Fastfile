@@ -1,0 +1,35 @@
+# More documentation about how to customize your build
+# can be found here:
+# https://docs.fastlane.tools
+fastlane_version "2.68.0"
+
+default_platform :ios
+
+platform :ios do
+  lane :appcenter_pre_build do
+    project = Dir[File.expand_path("../ios/*.xcodeproj")].first
+
+    # Switch back to manual for CI builds to work
+    disable_automatic_code_signing(
+      path: project
+    )
+
+    # Switch to distribution signing
+    path = File.join(project, "project.pbxproj")
+    p = File.read(path)
+    File.write(path, p.gsub(/CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = "iPhone Developer";/, "CODE_SIGN_IDENTITY[sdk=iphoneos\*]\" = \"iPhone Distribution\";"))
+
+    profiles_path = File.expand_path("~/Library/MobileDevice/Provisioning Profiles")
+
+    # List profiles (just for debugging)
+    sh "ls -l \"#{profiles_path}\""
+
+    # Set profile that was defined in the AppCenter build config
+    profile = Dir["#{profiles_path}/*.mobileprovision"].first
+    update_project_provisioning(
+      xcodeproj: project,
+      profile: profile,
+      build_configuration: "Release"
+    )
+  end
+end
